@@ -1,13 +1,14 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(API_KEY);
-
-export const analyzeReceipt = async (imageFile, decodeWalmart = false) => {
-    if (!API_KEY) {
-        throw new Error("Gemini API key is missing. Please add VITE_GEMINI_API_KEY to your .env file.");
+const getGenAI = (customKey) => {
+    if (!customKey) {
+        throw new Error("Gemini API key is required. Please enter your key in the AI Intelligence Config on the scan page.");
     }
+    return new GoogleGenerativeAI(customKey);
+};
 
+export const analyzeReceipt = async (imageFile, decodeWalmart = false, customApiKey = null) => {
+    const genAI = getGenAI(customApiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
     const convertFileToBase64 = (file) => {
@@ -79,12 +80,9 @@ export const analyzeReceipt = async (imageFile, decodeWalmart = false) => {
     }
 };
 
-export const autoAssignItems = async (receiptData, people, userPrompt, currentAssignments = {}) => {
-    if (!API_KEY) {
-        throw new Error("Gemini API key is missing.");
-    }
-
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+export const autoAssignItems = async (receiptData, people, userPrompt, currentAssignments = {}, customApiKey = null) => {
+    const genAI = getGenAI(customApiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
 
     const prompt = `
     You are an AI assistant helping to split a bill. 
