@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt Splitter - Flutter Edition</title>
+    <!-- React & Babel CDNs -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f4f8;
+            color: #202124;
+        }
+        .flutter-card {
+            border-radius: 28px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease;
+        }
+        .flutter-input {
+            border-radius: 16px;
+            background-color: #eef2f6;
+            transition: all 0.2s;
+        }
+        .flutter-input:focus {
+            background-color: #ffffff;
+            box-shadow: 0 0 0 2px #00BFA5;
+            outline: none;
+        }
+        .flutter-btn {
+            border-radius: 24px;
+            transition: all 0.2s;
+        }
+        .flutter-btn:active {
+            transform: scale(0.95);
+        }
+        .teal-gradient {
+            background: linear-gradient(135deg, #00BFA5 0%, #009688 100%);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        const RECEIPT_DATA =  {
+  items: [
+    { id: 1, name: "BNLS CK BRST", price: 12.46 },
+    { id: 2, name: "BNLS CK BRST", price: 12.46 },
+    { id: 3, name: "THOMAS EVER", price: 3.97 },
+    { id: 4, name: "THOMAS EVER", price: 3.97 },
+    { id: 5, name: "LR KIDNEYS", price: 1.22 },
+    { id: 6, name: "GV WHOLE GAL", price: 2.56 },
+    { id: 7, name: "GV WHOLE GAL", price: 2.56 },
+    { id: 8, name: "EGGS 60CT", price: 9.56 },
+    { id: 9, name: "POTATOES", price: 3.74 },
+    { id: 10, name: "RED ONION 3", price: 3.54 },
+    { id: 11, name: "RED ONION 3", price: 3.54 },
+    { id: 12, name: "PKG SALAD", price: 1.84 },
+    { id: 13, name: "AVOCADO BAG", price: 2.97 },
+    { id: 14, name: "PETITE CARRT", price: 1.86 },
+    { id: 15, name: "TOMATO ROMA", price: 4.66 }
+  ],
+  subtotal: 70.91,
+  tax: 3.55,
+  total: 74.46
+};
+        function App() {
+            const [people, setPeople] = useState([]);
+            const [newName, setNewName] = useState('');
+            const [assignments, setAssignments] = useState({});
+
+            const addPerson = (e) => {
+                e?.preventDefault();
+                if (!newName.trim()) return;
+                if (people.includes(newName.trim())) return;
+                setPeople([...people, newName.trim()]);
+                setNewName('');
+            };
+
+            const removePerson = (name) => {
+                setPeople(people.filter(p => p !== name));
+                const newAssignments = { ...assignments };
+                Object.keys(newAssignments).forEach(itemId => {
+                    newAssignments[itemId] = (newAssignments[itemId] || []).filter(p => p !== name);
+                });
+                setAssignments(newAssignments);
+            };
+
+            const toggleAssignment = (itemId, personName) => {
+                const current = assignments[itemId] || [];
+                if (current.includes(personName)) {
+                    setAssignments({
+                        ...assignments,
+                        [itemId]: current.filter(p => p !== personName)
+                    });
+                } else {
+                    setAssignments({
+                        ...assignments,
+                        [itemId]: [...current, personName]
+                    });
+                }
+            };
+
+            const selectAllForItem = (itemId) => {
+                setAssignments({ ...assignments, [itemId]: [...people] });
+            };
+
+            const clearForItem = (itemId) => {
+                setAssignments({ ...assignments, [itemId]: [] });
+            };
+
+            const individualResults = useMemo(() => {
+                const data = {};
+                people.forEach(p => data[p] = { subtotal: 0, itemCount: 0 });
+
+                RECEIPT_DATA.items.forEach(item => {
+                    const assigned = assignments[item.id] || [];
+                    if (assigned.length > 0) {
+                        const share = item.price / assigned.length;
+                        assigned.forEach(p => {
+                            data[p].subtotal += share;
+                            data[p].itemCount += 1;
+                        });
+                    }
+                });
+
+                return people.map(p => {
+                    const subtotal = data[p].subtotal;
+                    const taxShare = RECEIPT_DATA.subtotal > 0 ? (subtotal / RECEIPT_DATA.subtotal) * RECEIPT_DATA.tax : 0;
+                    return { name: p, subtotal, taxShare, total: subtotal + taxShare, itemCount: data[p].itemCount };
+                });
+            }, [people, assignments]);
+
+            const groupedResults = useMemo(() => {
+                const groups = {};
+                RECEIPT_DATA.items.forEach(item => {
+                    const assigned = (assignments[item.id] || []).slice().sort();
+                    if (assigned.length > 0) {
+                        const key = assigned.join(', ');
+                        if (!groups[key]) groups[key] = { items: [], subtotal: 0, sharers: assigned };
+                        groups[key].items.push(item);
+                        groups[key].subtotal += item.price;
+                    }
+                });
+
+                return Object.entries(groups).map(([key, data]) => {
+                    const taxShare = RECEIPT_DATA.subtotal > 0 ? (data.subtotal / RECEIPT_DATA.subtotal) * RECEIPT_DATA.tax : 0;
+                    const totalWithTax = data.subtotal + taxShare;
+                    return { key, ...data, taxShare, totalWithTax, perPersonShare: totalWithTax / data.sharers.length };
+                });
+            }, [assignments]);
+
+            return (
+                <div className="min-h-screen p-4 md:p-10 max-w-5xl mx-auto">
+                    {/* Header */}
+                    <header className="mb-10 text-center">
+                        <div className="inline-flex items-center justify-center w-20 h-20 teal-gradient text-white rounded-3xl shadow-xl mb-4">
+                            <i className="fa-solid fa-receipt text-3xl"></i>
+                        </div>
+                        <h1 className="text-4xl font-bold text-slate-800 tracking-tight">Receipt Splitter</h1>
+                        <p className="text-slate-500 font-medium mt-2">Flutter Edition • ${RECEIPT_DATA.total.toFixed(2)}</p>
+                        
+                        <div className="flex flex-wrap justify-center gap-4 mt-8">
+                            {[
+                                { label: "Subtotal", val: RECEIPT_DATA.subtotal, color: "text-slate-600" },
+                                { label: "Tax", val: RECEIPT_DATA.tax, color: "text-slate-600" },
+                                { label: "Total", val: RECEIPT_DATA.total, color: "text-teal-600" }
+                            ].map((s, i) => (
+                                <div key={i} className="bg-white px-6 py-3 flutter-card flex flex-col items-center min-w-[120px]">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{s.label}</span>
+                                    <span className={`text-xl font-bold ${s.color}`}>${s.val.toFixed(2)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </header>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* Left Column: Management */}
+                        <div className="lg:col-span-7 space-y-8">
+                            
+                            {/* 1. People */}
+                            <section className="bg-white p-8 flutter-card">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <i className="fa-solid fa-users text-teal-500 text-xl"></i>
+                                    <h2 className="text-xl font-bold">1. Who's splitting?</h2>
+                                </div>
+                                <form onSubmit={addPerson} className="flex gap-2 mb-6">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Add name..."
+                                        className="flex-1 px-5 py-3 flutter-input"
+                                        value={newName}
+                                        onChange={(e) => setNewName(e.target.value)}
+                                    />
+                                    <button type="submit" className="teal-gradient text-white px-6 py-3 flutter-btn font-bold shadow-lg shadow-teal-100 hover:opacity-90 transition-all">
+                                        <i className="fa-solid fa-plus mr-2"></i>Add
+                                    </button>
+                                </form>
+                                <div className="flex flex-wrap gap-2">
+                                    {people.map(p => (
+                                        <div key={p} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-2xl flex items-center gap-2 font-medium">
+                                            {p}
+                                            <button onClick={() => removePerson(p)} className="text-slate-400 hover:text-red-500 transition-colors">
+                                                <i className="fa-solid fa-circle-xmark"></i>
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {people.length === 0 && <p className="text-slate-400 italic text-sm">Add names to get started...</p>}
+                                </div>
+                            </section>
+
+                            {/* 2. Assign Items - NOW FULLY NON-SCROLLABLE */}
+                            <section className={`bg-white p-8 flutter-card transition-opacity ${people.length === 0 ? 'opacity-40 pointer-events-none' : ''}`}>
+                                <div className="flex items-center gap-3 mb-8">
+                                    <i className="fa-solid fa-check-to-slot text-teal-500 text-xl"></i>
+                                    <h2 className="text-xl font-bold">2. Assign Items</h2>
+                                </div>
+                                <div className="space-y-6">
+                                    {RECEIPT_DATA.items.map(item => (
+                                        <div key={item.id} className="pb-6 border-b border-slate-50 last:border-0 last:pb-0">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <h3 className="font-bold text-slate-800">{item.name}</h3>
+                                                    <span className="text-sm font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-lg">${item.price.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex gap-1">
+                                                    <button onClick={() => selectAllForItem(item.id)} className="text-[10px] font-bold text-slate-400 hover:text-teal-600 bg-slate-50 px-2 py-1 rounded-full uppercase">All</button>
+                                                    <button onClick={() => clearForItem(item.id)} className="text-[10px] font-bold text-slate-400 hover:text-red-500 bg-slate-50 px-2 py-1 rounded-full uppercase">None</button>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {people.map(p => {
+                                                    const active = (assignments[item.id] || []).includes(p);
+                                                    return (
+                                                        <button 
+                                                            key={p} 
+                                                            onClick={() => toggleAssignment(item.id, p)}
+                                                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${active ? 'bg-teal-500 border-teal-500 text-white shadow-md shadow-teal-100' : 'bg-white border-slate-200 text-slate-400 hover:border-teal-300'}`}
+                                                        >
+                                                            {p}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        </div>
+
+                        {/* Right Column: Results */}
+                        <div className="lg:col-span-5 space-y-8">
+                            
+                            {/* 3. Final Totals */}
+                            <section className="bg-white p-8 flutter-card">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <i className="fa-solid fa-calculator text-teal-500 text-xl"></i>
+                                    <h2 className="text-xl font-bold">3. Final Totals</h2>
+                                </div>
+                                <div className="space-y-4">
+                                    {individualResults.map(res => (
+                                        <div key={res.name} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                                            <div>
+                                                <div className="font-bold text-slate-800">{res.name}</div>
+                                                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{res.itemCount} items</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-lg font-bold text-slate-800">${res.total.toFixed(2)}</div>
+                                                <div className="text-[10px] text-slate-400 italic">inc. tax</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {people.length === 0 && <p className="text-center text-slate-400 italic py-4">Calculation will appear here.</p>}
+                                </div>
+                            </section>
+
+                            {/* 4. Grouped Results */}
+                            <section className="bg-white p-8 flutter-card overflow-hidden">
+                                <div className="flex items-center gap-3 mb-8">
+                                    <i className="fa-solid fa-layer-group text-teal-500 text-xl"></i>
+                                    <h2 className="text-xl font-bold">4. Grouped Results</h2>
+                                </div>
+                                <div className="space-y-6">
+                                    {groupedResults.length > 0 ? (
+                                        groupedResults.map(group => (
+                                            <div key={group.key} className="border border-slate-100 rounded-3xl overflow-hidden bg-white shadow-sm">
+                                                <div className="bg-slate-50 px-5 py-4 border-b border-slate-100">
+                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Shared By</div>
+                                                    <div className="font-bold text-slate-800">{group.key}</div>
+                                                </div>
+                                                <div className="p-5">
+                                                    <ul className="space-y-1 mb-4">
+                                                        {group.items.map((it, idx) => (
+                                                            <li key={idx} className="flex justify-between text-sm text-slate-500">
+                                                                <span>{it.name}</span>
+                                                                <span className="font-mono text-slate-400">${it.price.toFixed(2)}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                    <div className="flex justify-between items-end pt-4 border-t border-dashed border-slate-200">
+                                                        <div>
+                                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Per Person</div>
+                                                            <div className="text-2xl font-black text-teal-600">${group.perPersonShare.toFixed(2)}</div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="text-xs font-bold text-slate-400">Total Group</div>
+                                                            <div className="font-bold text-slate-800">${group.totalWithTax.toFixed(2)}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-10">
+                                            <i className="fa-solid fa-box-open text-slate-100 text-5xl mb-4"></i>
+                                            <p className="text-slate-400 text-sm">Assign items to see group splits.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                    
+                    <footer className="mt-12 text-center text-slate-400 text-xs font-medium uppercase tracking-widest">
+                        Handcrafted for easy splitting • 2026
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
