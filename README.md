@@ -14,21 +14,25 @@ SplitSmart AI is a premium, AI-powered receipt scanning and bill-splitting appli
 The gateway to quick scanning and secure collaboration.
 ![Home Page](./webHome.png)
 
-### 2. AI-Powered Data Correction
-Review and edit extracted items with ease before assigning.
-![Guest Edit](./webGuestEdit.png)
 
-### 3. Visual Item Assignment
+### 2. Visual Item Assignment
 The core splitting engine where items find their owners.
 ![Assign Items](./webAssign.png)
 
-### 4. Admin Review & Approval
+### 3. Itemized Results
+Professional breakdown of shares and totals with tax calculation.
+![Results](./WebResults.png)
+
+### 4. Share with friends and let them suggest changes
+Allow your friends to suggest modifications to their/other members contribution
+![Guest Edit](./webGuestEdit.png)
+
+### 5. Admin Review & Approval
 Merge suggestions from friends with one click.
 ![Admin Review](./webAdminReview.png)
 
-### 5. Itemized Results
-Professional breakdown of shares and totals with tax calculation.
-![Results](./WebResults.png)
+
+
 
 ---
 
