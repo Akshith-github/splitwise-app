@@ -7,9 +7,32 @@ const getGenAI = (customKey) => {
     return new GoogleGenerativeAI(customKey);
 };
 
-export const analyzeReceipt = async (imageFile, decodeWalmart = false, customApiKey = null) => {
+export const fetchAvailableModels = async (customApiKey) => {
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${customApiKey}`);
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error.message);
+        }
+
+        // Filter for generative models only
+        return data.models
+            .filter(m => m.supportedGenerationMethods.includes("generateContent"))
+            .map(m => ({
+                name: m.name.replace("models/", ""),
+                displayName: m.displayName,
+                description: m.description
+            }));
+    } catch (error) {
+        console.error("Error fetching Gemini models:", error);
+        throw error;
+    }
+};
+
+export const analyzeReceipt = async (imageFile, decodeWalmart = false, customApiKey = null, modelName = "gemini-1.5-flash") => {
     const genAI = getGenAI(customApiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: modelName });
 
     const convertFileToBase64 = (file) => {
         return new Promise((resolve, reject) => {
@@ -80,9 +103,9 @@ export const analyzeReceipt = async (imageFile, decodeWalmart = false, customApi
     }
 };
 
-export const autoAssignItems = async (receiptData, people, userPrompt, currentAssignments = {}, customApiKey = null) => {
+export const autoAssignItems = async (receiptData, people, userPrompt, currentAssignments = {}, customApiKey = null, modelName = "gemini-1.5-flash") => {
     const genAI = getGenAI(customApiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: modelName });
 
     const prompt = `
     You are an AI assistant helping to split a bill. 

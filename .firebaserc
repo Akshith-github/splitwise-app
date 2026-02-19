@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "splitwise-app-7777"
+  },
   "targets": {},
   "etags": {}
 }

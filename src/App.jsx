@@ -8,7 +8,7 @@ import {
   BrainCircuit, UploadCloud, Lock, LogIn, Key, ShieldCheck, RotateCcw,
   FileEdit, Maximize2, Minimize2, Save, Image as ImageIcon
 } from 'lucide-react';
-import { analyzeReceipt, autoAssignItems } from './services/gemini';
+import { analyzeReceipt, autoAssignItems, fetchAvailableModels } from './services/gemini';
 import { supabase } from './supabase';
 
 const App = () => {
@@ -52,10 +52,23 @@ const App = () => {
   const [userApiKey, setUserApiKey] = useState(() => {
     return localStorage.getItem('gemini_api_key') || '';
   });
+  const [availableModels, setAvailableModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState(() => {
+    return localStorage.getItem('gemini_selected_model') || 'gemini-1.5-flash';
+  });
 
   useEffect(() => {
     localStorage.setItem('gemini_api_key', userApiKey);
+    if (userApiKey && userApiKey.length > 20) {
+      fetchAvailableModels(userApiKey)
+        .then(setAvailableModels)
+        .catch(err => console.error("Failed to fetch models", err));
+    }
   }, [userApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('gemini_selected_model', selectedModel);
+  }, [selectedModel]);
 
   const hasChanges = useMemo(() => {
     return JSON.stringify(assignments) !== JSON.stringify(originalAssignments);
@@ -152,7 +165,7 @@ const App = () => {
         return;
       }
 
-      const data = await analyzeReceipt(selectedFile, isWalmart, userApiKey);
+      const data = await analyzeReceipt(selectedFile, isWalmart, userApiKey, selectedModel);
       // Save to cache
       setAnalysisCache(prev => ({ ...prev, [cacheKey]: data }));
       processAnalyzedData(data);
@@ -420,7 +433,7 @@ const App = () => {
     setLoading(true);
 
     try {
-      const suggestions = await autoAssignItems(receiptData, people, userText, assignments, userApiKey);
+      const suggestions = await autoAssignItems(receiptData, people, userText, assignments, userApiKey, selectedModel);
       setAssignments(suggestions);
       setMessages(prev => [...prev, { role: 'ai', text: "Done! I've updated the checkmarks based on your instructions. Anything else?" }]);
     } catch (error) {
@@ -565,20 +578,36 @@ const App = () => {
                   <BrainCircuit className="text-teal-600" size={20} />
                   <p className="text-xs font-black text-teal-800 uppercase tracking-widest">AI Intelligence Config</p>
                 </div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-teal-400">
-                    <Key size={16} />
+                <div className="space-y-4">
+                  <div className="premium-input bg-white/70 backdrop-blur-sm shadow-inner flex items-center gap-3 px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-100 transition-all">
+                    <Key size={16} className="text-teal-400 shrink-0" />
+                    <input
+                      type="password"
+                      placeholder="Enter your Gemini API Key..."
+                      className="bg-transparent border-none outline-none w-full p-0 text-slate-700"
+                      value={userApiKey}
+                      onChange={(e) => setUserApiKey(e.target.value)}
+                    />
                   </div>
-                  <input
-                    type="password"
-                    placeholder="Enter your Gemini API Key..."
-                    className="premium-input pl-12 bg-white/70 backdrop-blur-sm shadow-inner"
-                    value={userApiKey}
-                    onChange={(e) => setUserApiKey(e.target.value)}
-                  />
+
+                  <div className="premium-input bg-white/70 backdrop-blur-sm shadow-inner flex items-center gap-3 px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-100 transition-all animate-fade-in cursor-pointer">
+                    <BrainCircuit size={16} className="text-teal-400 shrink-0" />
+                    <select
+                      className="bg-transparent border-none outline-none w-full p-0 text-slate-700 appearance-none cursor-pointer"
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                    >
+                      {availableModels.map(m => (
+                        <option key={m.name} value={m.name}>
+                          {m.displayName} ({m.name})
+                        </option>
+                      ))}
+                    </select>
+                    <Plus size={14} className="text-teal-400 rotate-45 shrink-0" />
+                  </div>
                 </div>
                 <p className="mt-3 text-[10px] text-slate-500 font-bold text-left italic">
-                  Note: This key is used for receipt scanning and text-to-split logic. It is stored securely in your browser's local storage.
+                  Note: The selected model will be used for scanning and splitting logic. Key is stored locally.
                 </p>
               </motion.div>
             )}
@@ -656,12 +685,10 @@ const App = () => {
                 <div className="space-y-4">
                   <div className="text-left">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Split ID</label>
-                    <div className="relative mt-1">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                        <Lock size={18} />
-                      </div>
+                    <div className="premium-input flex items-center gap-3 px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-100 transition-all mt-1">
+                      <Lock size={18} className="text-slate-400 shrink-0" />
                       <input
-                        className="premium-input pl-12"
+                        className="bg-transparent border-none outline-none w-full p-0 text-slate-800 font-bold placeholder:text-slate-300"
                         placeholder="ENTER SPLIT ID"
                         value={accessIdInput}
                         onChange={(e) => setAccessIdInput(e.target.value.toUpperCase())}
@@ -670,13 +697,11 @@ const App = () => {
                   </div>
                   <div className="text-left">
                     <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Password</label>
-                    <div className="relative mt-1">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                        <Key size={18} />
-                      </div>
+                    <div className="premium-input flex items-center gap-3 px-4 focus-within:bg-white focus-within:ring-2 focus-within:ring-teal-100 transition-all mt-1">
+                      <Key size={18} className="text-slate-400 shrink-0" />
                       <input
                         type="password"
-                        className="premium-input pl-12"
+                        className="bg-transparent border-none outline-none w-full p-0 text-slate-800 placeholder:text-slate-300"
                         placeholder="••••"
                         value={accessPassInput}
                         onChange={(e) => setAccessPassInput(e.target.value)}
