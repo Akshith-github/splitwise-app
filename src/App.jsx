@@ -532,7 +532,7 @@ const App = () => {
             </div>
           )}
         </div>
-        <div className="hidden md:flex gap-1 bg-slate-100 p-1 rounded-2xl">
+        <div className="flex md:flex gap-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto whitespace-nowrap">
           {[
             { id: 1, label: 'Scan', icon: Scan },
             { id: 2, label: 'Edit', icon: FileEdit },
@@ -542,7 +542,7 @@ const App = () => {
             <button
               key={s.id}
               onClick={() => receiptData && setStep(s.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${step === s.id
+              className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition-all ${step === s.id
                 ? 'bg-white text-teal-600 shadow-sm'
                 : 'text-slate-600 hover:text-slate-600'
                 }`}
