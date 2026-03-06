@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
-  Receipt, Users, CheckSquare, Calculator, Plus, XCircle, Scan,
+  Receipt, Users, CheckSquare, Calculator, Plus, XCircle, Scan, Menu,
   ChevronRight, TrendingUp, CreditCard, UserPlus, Sparkles,
   BrainCircuit, UploadCloud, Lock, LogIn, Key, ShieldCheck, RotateCcw,
   FileEdit, Maximize2, Minimize2, Save, Image as ImageIcon
@@ -32,6 +32,7 @@ const App = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [viewPassword, setViewPassword] = useState('');
   const [showJoinSplit, setShowJoinSplit] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const chatInputRef = React.useRef(null);
 
@@ -532,7 +533,7 @@ const App = () => {
             </div>
           )}
         </div>
-        <div className="flex md:flex gap-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto whitespace-nowrap">
+        <div className="hidden md:flex gap-1 bg-slate-100 p-1 rounded-2xl overflow-x-auto whitespace-nowrap">
           {[
             { id: 1, label: 'Scan', icon: Scan },
             { id: 2, label: 'Edit', icon: FileEdit },
@@ -551,6 +552,52 @@ const App = () => {
               {s.label}
             </button>
           ))}
+        </div>
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setMobileNavOpen(true)}
+          className="md:hidden ml-3 ml-auto bg-slate-100 p-2 rounded-lg"
+          aria-label="Open navigation"
+        >
+          <Menu size={20} />
+        </button>
+
+        {/* Mobile sidebar drawer */}
+        <div className={`fixed inset-0 z-50 md:hidden ${mobileNavOpen ? '' : 'pointer-events-none'}`} aria-hidden={!mobileNavOpen}>
+          <div
+            className={`absolute inset-0 bg-black/40 transition-opacity ${mobileNavOpen ? 'opacity-100' : 'opacity-0'}`}
+            onClick={() => setMobileNavOpen(false)}
+          />
+          <aside className={`absolute left-0 top-0 h-full w-64 bg-white shadow-lg p-4 transform transition-transform ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 teal-gradient rounded-xl flex items-center justify-center text-white">
+                  <Receipt size={20} />
+                </div>
+                <h2 className="font-bold">Menu</h2>
+              </div>
+              <button onClick={() => setMobileNavOpen(false)} className="p-1 rounded-md">
+                <XCircle size={20} />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-2">
+              {[
+                { id: 1, label: 'Scan', icon: Scan },
+                { id: 2, label: 'Edit', icon: FileEdit },
+                { id: 3, label: 'Assign', icon: UserPlus },
+                { id: 4, label: 'Results', icon: Calculator }
+              ].map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => { setMobileNavOpen(false); receiptData && setStep(s.id); }}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md text-left font-semibold ${step === s.id ? 'bg-teal-50 text-teal-600' : 'text-slate-700 hover:bg-slate-100'}`}
+                >
+                  <s.icon size={18} />
+                  {s.label}
+                </button>
+              ))}
+            </nav>
+          </aside>
         </div>
       </div>
 
